@@ -18,6 +18,7 @@ FPS = 60
 PLAYER_VEL = 5
 BLOCK_SIZE = 96
 font = pygame.font.Font(None, 36)
+colors = [(255, 0, 0),(0, 0, 0)]
 
 # Create the game window
 window = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -310,6 +311,23 @@ class Fire(GameObject):
         if self.animation_count // self.ANIMATION_DELAY > len(sprites):
             self.animation_count = 0
 
+class Button:
+    def __init__(self, text: str, font: pygame.font.Font, x: int, y: int, width: int, height: int) -> None:
+        self.text = text
+        self.font = font
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.colors = [(255, 0, 0), (0, 0, 0)]  # Red background, black text
+
+    def draw(self, window: pygame.Surface) -> None:
+        pygame.draw.rect(window, self.colors[0], (self.x, self.y, self.width, self.height))
+        text_surface = self.font.render(self.text, True, self.colors[1])
+        text_rect = text_surface.get_rect(center=(self.x + self.width / 2, self.y + self.height / 2))
+        window.blit(text_surface, text_rect)
+        
+
 
 def get_background(name: str) -> tuple:
     image = pygame.image.load(join("assets", "Background", name))
@@ -377,7 +395,7 @@ def collide(character: object, objects: list, dx: int) -> Optional[object]:
     return collided_object
 
 
-def handle_move(player: object, enemy: object, objects: list) -> None:
+def handle_move(player: object, first_enemy: object, objects: list) -> None:
     keys = pygame.key.get_pressed()
 
     player.x_vel = 0
@@ -395,30 +413,32 @@ def handle_move(player: object, enemy: object, objects: list) -> None:
     for obj in to_check:
         if isinstance(obj, Fire):  # Check if obj is an instance of the Fire class
             player.make_hit(obj)  # Handle collision with fire
+        elif obj == first_enemy:  # Check if obj is the first enemy
+            player.make_hit(first_enemy)  # Handle collision with first enemy
 
     # Adjust enemy movement
     enemy_on_ground = False
     for obj in objects:
-        if isinstance(obj, Block) and obj.rect.colliderect(enemy.rect.move(0, 1)):
+        if isinstance(obj, Block) and obj.rect.colliderect(first_enemy.rect.move(0, 1)):
             enemy_on_ground = True
             break
 
     if enemy_on_ground:
         # If enemy is on the ground, reset its vertical velocity
-        enemy.y_vel = 0
+        first_enemy.y_vel = 0
     else:
         # Apply gravity to make the enemy fall when not on the ground
-        enemy.y_vel += min(1, (enemy.fall_count / FPS) * enemy.GRAVITY)
+        first_enemy.y_vel += min(1, (first_enemy.fall_count / FPS) * first_enemy.GRAVITY)
 
     # Update enemy's horizontal movement
-    enemy.move(enemy.x_vel, 0)
+    first_enemy.move(first_enemy.x_vel, 0)
 
     # Move enemy vertically
-    enemy.move(0, enemy.y_vel)
+    first_enemy.move(0, first_enemy.y_vel)
 
     # Update enemy's sprite
-    enemy.update_sprite()
-    enemy.update_sprite()
+    first_enemy.update_sprite()
+    first_enemy.update_sprite()
 
 
 def main(window: pygame.Surface):
@@ -429,6 +449,7 @@ def main(window: pygame.Surface):
 
     player = Player(0, HEIGHT - block_size, 50, 50)
     first_enemy = Enemy(block_size * 6, HEIGHT - block_size * 4, 50, 50)
+    gameOver_button = Button("Retry ?", font, WIDTH//2, HEIGHT//2, 200, 100)
     fire = Fire(block_size * 2, HEIGHT - block_size - 64, 16, 32)
     fire.on()
     floor = [Block(i * block_size, HEIGHT - block_size, block_size)
@@ -473,9 +494,7 @@ def main(window: pygame.Surface):
             player.lives = 0
 
         if player.lives == 0:
-            player.rect.x = 0
-            player.rect.y = HEIGHT - block_size
-            player.lives = 3
+            gameOver_button.draw(window)
 
         if ((player.rect.right - offset_x >= WIDTH - scroll_area_width) and player.x_vel > 0) or (
                 (player.rect.left - offset_x <= scroll_area_width) and player.x_vel < 0):
