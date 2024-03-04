@@ -35,9 +35,6 @@ main.py
 
 ## Credits
 
-- This game was created by [Your Name] as a project for [Course/Workshop/Personal Learning].
+- This game was created by [Abel Tognoni] as a project for [School].
 - Sprites and graphics assets used in the game are sourced from [insert sources here].
 
-## License
-
-This project is licensed under the [MIT License](LICENSE).
