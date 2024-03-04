@@ -35,6 +35,6 @@ main.py
 
 ## Credits
 
-- This game was created by [Abel Tognoni] as a project for [School].
+- This game was created by Abel Tognoni, Marion Gueble and Romain Zanker as a project for School.
 - Sprites and graphics assets used in the game are sourced from [insert sources here].
 
