@@ -439,7 +439,6 @@ def handle_move(player: object, first_enemy: object, objects: list) -> None:
     first_enemy.update_sprite()
     first_enemy.update_sprite()
 
-
 def main(window: pygame.Surface):
     clock = pygame.time.Clock()
     background, bg_image = get_background("Blue.png")
@@ -468,36 +467,47 @@ def main(window: pygame.Surface):
     first_enemy.x_vel = -2  # Adjust as needed
 
     run = True
+    # Ajouter une variable pour suivre l'état de pause
+    paused = False
+
+    # Dans la boucle principale du jeu
     while run:
         clock.tick(FPS)
-
-        lives_text = font.render(f"Lives: {player.lives}", True, (0, 0, 0))
-        window.blit(lives_text, (10, 10))
-        pygame.display.update()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
 
+            # Écouter l'événement de pression de la touche de pause
             if event.type == pygame.KEYDOWN:
-                if (event.key == pygame.K_SPACE or event.key == pygame.K_UP) and player.jump_count < 2:
-                    player.jump()
+                if event.key == pygame.K_p:
+                    paused = not paused  # Inverser l'état de pause
 
-        player.loop(FPS)
-        first_enemy.loop(FPS, objects)
-        fire.loop()
-        handle_move(player, first_enemy, objects)
-        draw(window, background, bg_image, player, first_enemy, fire, objects, offset_x)
+        # Si le jeu est en pause, ne pas mettre à jour le jeu
+        if not paused:
+            lives_text = font.render(f"Lives: {player.lives}", True, (0, 0, 0))
+            window.blit(lives_text, (10, 10))
+            pygame.display.update()
 
-        if player.rect.y > HEIGHT:
-            player.lives = 0
+            player.loop(FPS)
+            first_enemy.loop(FPS, objects)
+            fire.loop()
+            handle_move(player, first_enemy, objects)
+            draw(window, background, bg_image, player, first_enemy, fire, objects, offset_x)
 
-        if player.lives == 0:
-            gameOver_button.draw(window)
+            if player.rect.y > HEIGHT:
+                player.lives = 0
 
-        if ((player.rect.right - offset_x >= WIDTH - scroll_area_width) and player.x_vel > 0) or (
-                (player.rect.left - offset_x <= scroll_area_width) and player.x_vel < 0):
-            offset_x += player.x_vel
+            if player.lives == 0:
+                gameOver_button.draw(window)
+                run = False
+
+            if ((player.rect.right - offset_x >= WIDTH - scroll_area_width) and player.x_vel > 0) or (
+                    (player.rect.left - offset_x <= scroll_area_width) and player.x_vel < 0):
+                offset_x += player.x_vel
+
+    pygame.display.update()
+
 
     pygame.quit()
     quit()
