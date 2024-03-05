@@ -359,7 +359,6 @@ def draw(window: pygame.Surface, background: list, bg_image: pygame.Surface,
     fire.draw(window, offset_x)
     player.draw(window, offset_x)
     enemy.draw(window, offset_x)
-    pygame.display.update()
 
 
 def handle_vertical_collision(character: object, objects: list, dy: int) -> list:
