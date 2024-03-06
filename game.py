@@ -1,4 +1,5 @@
 import os
+import asyncio
 
 from os import listdir
 from os.path import isfile, join
@@ -95,9 +96,10 @@ class Player(pygame.sprite.Sprite):
             self.fall_count = 0
 
 
-    def move(self, dx: int, dy: int) -> None:
-        self.rect.x += dx
-        self.rect.y += dy
+    def move(self, dx: int, dy: int, GAMEOVER: bool) -> None:
+        if not GAMEOVER:
+            self.rect.x += dx
+            self.rect.y += dy
 
 
     def make_hit(self, enemy_object: object) -> None:
@@ -109,21 +111,23 @@ class Player(pygame.sprite.Sprite):
                 self.lives -= 1
 
 
-    def move_left(self, vel: int) -> None:
-        self.x_vel = -vel
-        if self.direction != "left":
-            self.direction = "left"
-            self.animation_count = 0
+    def move_left(self, vel: int, GAMEOVER: bool) -> None:
+        if not GAMEOVER:
+            self.x_vel = -vel
+            if self.direction != "left":
+                self.direction = "left"
+                self.animation_count = 0
 
 
-    def move_right(self, vel: int) -> None:
-        self.x_vel = vel
-        if self.direction != "right":
-            self.direction = "right"
-            self.animation_count = 0
+    def move_right(self, vel: int, GAMEOVER: bool) -> None:
+        if not GAMEOVER:
+            self.x_vel = vel
+            if self.direction != "right":
+                self.direction = "right"
+                self.animation_count = 0
 
 
-    def loop(self, FPS: int) -> None:
+    def loop(self, FPS: int, GAMEOVER: bool) -> None:
         if self.invincible:
             self.invincible_count -= 1
             if self.invincible_count <= 0:
@@ -137,7 +141,7 @@ class Player(pygame.sprite.Sprite):
 
         self.fall_count += 1
         self.y_vel += min(1, (self.fall_count / FPS) * self.GRAVITY)
-        self.move(self.x_vel, self.y_vel)
+        self.move(self.x_vel, self.y_vel, GAMEOVER)
 
         if self.hit:
             self.hit_count += 1
@@ -381,8 +385,8 @@ def handle_vertical_collision(character: object, objects: list, dy: int) -> list
     return collided_objects
 
 
-def collide(character: object, objects: list, dx: int) -> Optional[object]:
-    character.move(dx, 0)
+def collide(character: object, objects: list, dx: int, GAMEOVER) -> Optional[object]:
+    character.move(dx, 0, GAMEOVER)
     character.update()
     collided_object = None
     for obj in objects:
@@ -390,22 +394,22 @@ def collide(character: object, objects: list, dx: int) -> Optional[object]:
             collided_object = obj
             break
 
-    character.move(-dx, 0)
+    character.move(-dx, 0, GAMEOVER)
     character.update()
     return collided_object
 
 
-def handle_move(player: object, first_enemy: object, objects: list) -> None:
+def handle_move(player: object, first_enemy: object, objects: list, GAMEOVER: bool) -> None:
     keys = pygame.key.get_pressed()
 
     player.x_vel = 0
-    collide_left = collide(player, objects, -PLAYER_VEL * 2)
-    collide_right = collide(player, objects, PLAYER_VEL * 2)
+    collide_left = collide(player, objects, -PLAYER_VEL * 2, GAMEOVER)
+    collide_right = collide(player, objects, PLAYER_VEL * 2, GAMEOVER)
 
     if keys[pygame.K_LEFT] and not collide_left:
-        player.move_left(PLAYER_VEL)
+        player.move_left(PLAYER_VEL, GAMEOVER)
     if keys[pygame.K_RIGHT] and not collide_right:
-        player.move_right(PLAYER_VEL)
+        player.move_right(PLAYER_VEL, GAMEOVER)
 
     vertical_collide = handle_vertical_collision(player, objects, player.y_vel)
     to_check = [collide_left, collide_right, *vertical_collide]
@@ -438,7 +442,26 @@ def handle_move(player: object, first_enemy: object, objects: list) -> None:
     first_enemy.update_sprite()
     first_enemy.update_sprite()
 
+def pause(window: pygame.Surface, font: pygame.font.Font) -> None:
+    paused = True
+    while paused:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    paused = False    
+    
+async def game_over(gameOver_button: pygame.Surface, window: pygame.Surface, font: pygame.font.Font, FPS: int):
+    gameOver_button.draw(window)
+    await asyncio.sleep(FPS)
+    pause(window, font)
+
 def main(window: pygame.Surface):
+    paused = False  # Variable to track pause state
+    GAMEOVER = False  # Variable to track game over state
     clock = pygame.time.Clock()
     background, bg_image = get_background("Blue.png")
 
@@ -468,6 +491,11 @@ def main(window: pygame.Surface):
     while run:
         clock.tick(FPS)
 
+        if GAMEOVER:
+            # Draw game over menu
+            asyncio.run(game_over(gameOver_button, window, font, FPS))
+            continue  # Skip the rest of the loop iteration after game over
+
         lives_text = font.render(f"Lives: {player.lives}", True, (0, 0, 0))
         window.blit(lives_text, (10, 10))
         pygame.display.update()
@@ -476,23 +504,30 @@ def main(window: pygame.Surface):
             if event.type == pygame.QUIT:
                 run = False
 
-
             if event.type == pygame.KEYDOWN:
-                if (event.key == pygame.K_SPACE or event.key == pygame.K_UP) and player.jump_count < 2:
-                    player.jump()
+                if event.key == pygame.K_SPACE or event.key == pygame.K_UP:
+                    if not paused and not game_over:  # Allow jumping only when not paused or game over
+                        player.jump()
+                elif event.key == pygame.K_ESCAPE:
+                    if not game_over:  # Toggle pause only when not already game over
+                        paused = not paused
 
-        player.loop(FPS)
+        if paused:
+            # Draw pause menu
+            pause(window, font)
+            continue  # Skip the rest of the loop iteration while paused
+
+        player.loop(FPS, GAMEOVER)
         first_enemy.loop(FPS, objects)
         fire.loop()
-        handle_move(player, first_enemy, objects)
+        handle_move(player, first_enemy, objects, GAMEOVER)
         draw(window, background, bg_image, player, first_enemy, fire, objects, offset_x)
 
         if player.rect.y > HEIGHT:
             player.lives = 0
 
         if player.lives <= 0:
-            gameOver_button.draw(window)
-
+            game_over = True  # Set game over state to True
 
         if ((player.rect.right - offset_x >= WIDTH - scroll_area_width) and player.x_vel > 0) or (
                 (player.rect.left - offset_x <= scroll_area_width) and player.x_vel < 0):
@@ -500,6 +535,7 @@ def main(window: pygame.Surface):
 
     pygame.quit()
     quit()
+
 
 
 if __name__ == "__main__":
