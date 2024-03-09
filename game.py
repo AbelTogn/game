@@ -1,5 +1,4 @@
 import os
-import asyncio
 
 from os import listdir
 from os.path import isfile, join
@@ -19,13 +18,14 @@ FPS = 60
 PLAYER_VEL = 5
 BLOCK_SIZE = 96
 font = pygame.font.Font(None, 36)
-colors = [(255, 0, 0), (0, 0, 0)]
+colors = [(255, 0, 0),(0, 0, 0)]
+gameOver = False
 
 # Create the game window
 window = pygame.display.set_mode((WIDTH, HEIGHT))
 
 
-
+# Function to load sprite sheets
 def load_sprite_sheets(directory_1, directory_2, width, height, direction=False) -> dict:
     path = join("assets", directory_1, directory_2)
     images = [f for f in listdir(path) if isfile(join(path, f))]
@@ -36,14 +36,14 @@ def load_sprite_sheets(directory_1, directory_2, width, height, direction=False)
         sprite_sheet = pygame.image.load(join(path, image)).convert_alpha()
         sprites = []
 
-
+        # Split sprite sheet into individual sprites
         for i in range(sprite_sheet.get_width() // width):
             surface = pygame.Surface((width, height), pygame.SRCALPHA, 32)
             rect = pygame.Rect(i * width, 0, width, height)
             surface.blit(sprite_sheet, (0, 0), rect)
             sprites.append(pygame.transform.scale2x(surface))
 
-
+        # Store sprites in dictionary, handling direction if specified
         if direction:
             all_sprites[image.replace(".png", "") + "_right"] = sprites
             all_sprites[image.replace(".png", "") + "_left"] = [pygame.transform.flip(sprite, True, False) for sprite
@@ -54,7 +54,7 @@ def load_sprite_sheets(directory_1, directory_2, width, height, direction=False)
     return all_sprites
 
 
-
+# Function to get block image
 def get_block(size: float) -> pygame.Surface:
     path = join("assets", "Terrain", "Terrain.png")
     image = pygame.image.load(path).convert_alpha()
@@ -64,7 +64,7 @@ def get_block(size: float) -> pygame.Surface:
     return pygame.transform.scale2x(surface)
 
 
-
+# Define Player class
 class Player(pygame.sprite.Sprite):
     COLOR = (255, 0, 0)
     GRAVITY = 1
@@ -73,7 +73,7 @@ class Player(pygame.sprite.Sprite):
 
     def __init__(self, x: int, y: int, width: int, height: int) -> None:
         super().__init__()
-
+        # Initialize player attributes
         self.rect = pygame.Rect(x, y, width, height)
         self.x_vel, self.y_vel = 0, 0
         self.mask = None
@@ -87,21 +87,21 @@ class Player(pygame.sprite.Sprite):
         self.invincible = False
         self.invincible_count = 0
 
-
+    # Method to make the player jump
     def jump(self):
+        
         self.y_vel = -self.GRAVITY * 8
         self.animation_count = 0
         self.jump_count += 1
         if self.jump_count == 1:
             self.fall_count = 0
 
+    # Method to move the player
+    def move(self, dx: int, dy: int) -> None:
+        self.rect.x += dx
+        self.rect.y += dy
 
-    def move(self, dx: int, dy: int, GAMEOVER: bool) -> None:
-        if not GAMEOVER:
-            self.rect.x += dx
-            self.rect.y += dy
-
-
+    # Method to handle player being hit by enemies
     def make_hit(self, enemy_object: object) -> None:
         enemy_object_class = type(enemy_object).__name__
         if enemy_object_class == "Fire" or enemy_object_class == "Enemy":
@@ -110,24 +110,22 @@ class Player(pygame.sprite.Sprite):
                 self.invincible_count = FPS * 3
                 self.lives -= 1
 
+    # Method to move player left
+    def move_left(self, vel: int) -> None:
+        self.x_vel = -vel
+        if self.direction != "left":
+            self.direction = "left"
+            self.animation_count = 0
 
-    def move_left(self, vel: int, GAMEOVER: bool) -> None:
-        if not GAMEOVER:
-            self.x_vel = -vel
-            if self.direction != "left":
-                self.direction = "left"
-                self.animation_count = 0
+    # Method to move player right
+    def move_right(self, vel: int) -> None:
+        self.x_vel = vel
+        if self.direction != "right":
+            self.direction = "right"
+            self.animation_count = 0
 
-
-    def move_right(self, vel: int, GAMEOVER: bool) -> None:
-        if not GAMEOVER:
-            self.x_vel = vel
-            if self.direction != "right":
-                self.direction = "right"
-                self.animation_count = 0
-
-
-    def loop(self, FPS: int, GAMEOVER: bool) -> None:
+    # Method to update player state and animation
+    def loop(self, FPS: int) -> None:
         if self.invincible:
             self.invincible_count -= 1
             if self.invincible_count <= 0:
@@ -141,7 +139,7 @@ class Player(pygame.sprite.Sprite):
 
         self.fall_count += 1
         self.y_vel += min(1, (self.fall_count / FPS) * self.GRAVITY)
-        self.move(self.x_vel, self.y_vel, GAMEOVER)
+        self.move(self.x_vel, self.y_vel)
 
         if self.hit:
             self.hit_count += 1
@@ -151,18 +149,18 @@ class Player(pygame.sprite.Sprite):
 
         self.update_sprite()
 
-
+    # Method to handle player landing
     def landed(self) -> None:
         self.fall_count = 0
         self.y_vel = 0
         self.jump_count = 0
 
-
+    # Method to handle player hitting ceiling
     def hit_head(self) -> None:
         self.count = 0
         self.y_vel *= -1
 
-
+    # Method to update player sprite based on state
     def update_sprite(self) -> None:
         sprite_sheet = "idle"
         if self.hit:
@@ -184,12 +182,12 @@ class Player(pygame.sprite.Sprite):
         self.animation_count += 1
         self.update()
 
-
+    # Method to update player position and mask
     def update(self) -> None:
         self.rect = self.sprite.get_rect(topleft=(self.rect.x, self.rect.y))
         self.mask = pygame.mask.from_surface(self.sprite)
 
-
+    # Method to draw player on screen
     def draw(self, win: pygame.Surface, offset_x: int) -> None:
         if self.invincible and (self.invincible_count // 10) % 2 == 0:
             win.blit(self.sprite, (self.rect.x - offset_x, self.rect.y))
@@ -199,7 +197,7 @@ class Player(pygame.sprite.Sprite):
 
 class Enemy(pygame.sprite.Sprite):
     COLOR = (255, 0, 0)
-    GRAVITY = 0.5
+    GRAVITY = 0.5  # Adjust gravity as needed
     SPRITES = load_sprite_sheets("MainCharacters", "NinjaFrog", 32, 32, True)
     ANIMATION_DELAY = 3
 
@@ -223,12 +221,12 @@ class Enemy(pygame.sprite.Sprite):
         for obj in objects:
             if isinstance(obj, Block) and obj.rect.colliderect(self.rect.move(0, self.y_vel + 1)):
                 on_ground = True
-                self.rect.bottom = obj.rect.top
-                self.y_vel = 0
+                self.rect.bottom = obj.rect.top  # Adjust position to be just above the ground
+                self.y_vel = 0  # Stop falling
                 break
 
         if not on_ground:
-
+            # Apply gravity to make the enemy fall when not on the ground
             self.y_vel += self.GRAVITY
 
         self.move(0, self.y_vel)
@@ -237,14 +235,14 @@ class Enemy(pygame.sprite.Sprite):
     def handle_collision(self, objects: list) -> None:
         for obj in objects:
             if pygame.sprite.collide_rect(self, obj):
-                if self.rect.colliderect(obj.rect):
-                    if self.y_vel > 0:
-                        self.rect.bottom = obj.rect.top
-                        self.fall_count = 0
-                        self.y_vel = 0
-                    elif self.y_vel < 0:
-                        self.rect.top = obj.rect.bottom
-                        self.y_vel = 0
+                if self.rect.colliderect(obj.rect):  # Check for collision with object
+                    if self.y_vel > 0:  # If falling downwards
+                        self.rect.bottom = obj.rect.top  # Adjust position to be just above the ground
+                        self.fall_count = 0  # Reset fall count
+                        self.y_vel = 0  # Stop falling
+                    elif self.y_vel < 0:  # If moving upwards
+                        self.rect.top = obj.rect.bottom  # Adjust position below the ceiling
+                        self.y_vel = 0  # Stop moving upwards
 
     def update_sprite(self) -> None:
         sprite_sheet_name = "run_" + self.direction
@@ -262,7 +260,7 @@ class Enemy(pygame.sprite.Sprite):
         win.blit(self.sprite, (self.rect.x - offset_x, self.rect.y))
 
 
-
+# Define Object class
 class GameObject(pygame.sprite.Sprite):
     def __init__(self, x: int, y: int, width: int, height: int, name=None):
         super().__init__()
@@ -276,7 +274,7 @@ class GameObject(pygame.sprite.Sprite):
         win.blit(self.image, (self.rect.x - offset_x, self.rect.y))
 
 
-
+# Define Block class
 class Block(GameObject):
     def __init__(self, x: int, y: int, size: int):
         super().__init__(x, y, size, size)
@@ -285,7 +283,7 @@ class Block(GameObject):
         self.mask = pygame.mask.from_surface(self.image)
 
 
-
+# Define Fire class
 class Fire(GameObject):
     ANIMATION_DELAY = 3
 
@@ -315,7 +313,6 @@ class Fire(GameObject):
         if self.animation_count // self.ANIMATION_DELAY > len(sprites):
             self.animation_count = 0
 
-
 class Button:
     def __init__(self, text: str, font: pygame.font.Font, x: int, y: int, width: int, height: int) -> None:
         self.text = text
@@ -324,14 +321,14 @@ class Button:
         self.y = y
         self.width = width
         self.height = height
-        self.colors = [(255, 0, 0), (0, 0, 0)]
+        self.colors = [(255, 0, 0), (0, 0, 0)]  # Red background, black text
 
     def draw(self, window: pygame.Surface) -> None:
         pygame.draw.rect(window, self.colors[0], (self.x, self.y, self.width, self.height))
         text_surface = self.font.render(self.text, True, self.colors[1])
         text_rect = text_surface.get_rect(center=(self.x + self.width // 2, self.y + self.height // 2))
         window.blit(text_surface, text_rect)
-
+        
 
 
 def get_background(name: str) -> tuple:
@@ -374,19 +371,19 @@ def handle_vertical_collision(character: object, objects: list, dy: int) -> list
                 character.rect.bottom = obj.rect.top
                 character.landed()
             elif dy < 0:
-                character.rect.top = obj.rect.bottom + 1
-                if isinstance(character, Player):
+                character.rect.top = obj.rect.bottom + 1  # Fix to avoid continuous collision
+                if isinstance(character, Player):  # Check if character is Player
                     character.hit_head()
-                elif isinstance(character, Enemy):
-                    character.rect.bottom = obj.rect.bottom
-                    character.y_vel = 0
+                elif isinstance(character, Enemy):  # Check if character is Enemy
+                    character.rect.bottom = obj.rect.bottom  # Adjust position to be at same level as obstacle
+                    character.y_vel = 0  # Stop upward movement for enemy
             collided_objects.append(obj)
 
     return collided_objects
 
 
-def collide(character: object, objects: list, dx: int, GAMEOVER) -> Optional[object]:
-    character.move(dx, 0, GAMEOVER)
+def collide(character: object, objects: list, dx: int) -> Optional[object]:
+    character.move(dx, 0)
     character.update()
     collided_object = None
     for obj in objects:
@@ -394,31 +391,33 @@ def collide(character: object, objects: list, dx: int, GAMEOVER) -> Optional[obj
             collided_object = obj
             break
 
-    character.move(-dx, 0, GAMEOVER)
+    character.move(-dx, 0)
     character.update()
     return collided_object
 
 
-def handle_move(player: object, first_enemy: object, objects: list, GAMEOVER: bool) -> None:
+def handle_move(player: object, first_enemy: object, objects: list) -> None:
     keys = pygame.key.get_pressed()
 
     player.x_vel = 0
-    collide_left = collide(player, objects, -PLAYER_VEL * 2, GAMEOVER)
-    collide_right = collide(player, objects, PLAYER_VEL * 2, GAMEOVER)
+    collide_left = collide(player, objects, -PLAYER_VEL * 2)
+    collide_right = collide(player, objects, PLAYER_VEL * 2)
 
     if keys[pygame.K_LEFT] and not collide_left:
-        player.move_left(PLAYER_VEL, GAMEOVER)
+        player.move_left(PLAYER_VEL)
     if keys[pygame.K_RIGHT] and not collide_right:
-        player.move_right(PLAYER_VEL, GAMEOVER)
+        player.move_right(PLAYER_VEL)
 
     vertical_collide = handle_vertical_collision(player, objects, player.y_vel)
     to_check = [collide_left, collide_right, *vertical_collide]
 
     for obj in to_check:
-        if isinstance(obj, Fire):
-            player.make_hit(obj)
-        elif obj == first_enemy:
-            player.make_hit(first_enemy)
+        if isinstance(obj, Fire):  # Check if obj is an instance of the Fire class
+            player.make_hit(obj)  # Handle collision with fire
+        elif obj == first_enemy:  # Check if obj is the first enemy
+            player.make_hit(first_enemy)  # Handle collision with first enemy
+
+    # Adjust enemy movement
     enemy_on_ground = False
     for obj in objects:
         if isinstance(obj, Block) and obj.rect.colliderect(first_enemy.rect.move(0, 1)):
@@ -426,50 +425,31 @@ def handle_move(player: object, first_enemy: object, objects: list, GAMEOVER: bo
             break
 
     if enemy_on_ground:
-
+        # If enemy is on the ground, reset its vertical velocity
         first_enemy.y_vel = 0
     else:
-
+        # Apply gravity to make the enemy fall when not on the ground
         first_enemy.y_vel += min(1, (first_enemy.fall_count / FPS) * first_enemy.GRAVITY)
 
-
+    # Update enemy's horizontal movement
     first_enemy.move(first_enemy.x_vel, 0)
 
-
+    # Move enemy vertically
     first_enemy.move(0, first_enemy.y_vel)
 
-
+    # Update enemy's sprite
     first_enemy.update_sprite()
     first_enemy.update_sprite()
-
-def pause(window: pygame.Surface, font: pygame.font.Font) -> None:
-    paused = True
-    while paused:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    paused = False    
-    
-async def game_over(gameOver_button: pygame.Surface, window: pygame.Surface, font: pygame.font.Font, FPS: int):
-    gameOver_button.draw(window)
-    await asyncio.sleep(FPS)
-    pause(window, font)
 
 def main(window: pygame.Surface):
-    paused = False  # Variable to track pause state
-    GAMEOVER = False  # Variable to track game over state
     clock = pygame.time.Clock()
     background, bg_image = get_background("Blue.png")
 
     block_size = 96
-
+    
     player = Player(0, HEIGHT - block_size, 50, 50)
     first_enemy = Enemy(block_size * 6, HEIGHT - block_size * 4, 50, 50)
-    gameOver_button = Button("Retry ?", font, WIDTH//2, HEIGHT//2, 200, 100)
+    gameOver_button = Button("Retry ?", font, (WIDTH - 200) // 2, (HEIGHT - 100) // 2, 200, 100)
     fire = Fire(block_size * 2, HEIGHT - block_size - 64, 16, 32)
     fire.on()
     floor = [Block(i * block_size, HEIGHT - block_size, block_size)
@@ -485,16 +465,12 @@ def main(window: pygame.Surface):
     offset_x = 0
     scroll_area_width = 200
 
-    first_enemy.x_vel = -2
+    # Set enemy's initial velocity to move left
+    first_enemy.x_vel = -2  # Adjust as needed
 
     run = True
     while run:
         clock.tick(FPS)
-
-        if GAMEOVER:
-            # Draw game over menu
-            asyncio.run(game_over(gameOver_button, window, font, FPS))
-            continue  # Skip the rest of the loop iteration after game over
 
         lives_text = font.render(f"Lives: {player.lives}", True, (0, 0, 0))
         window.blit(lives_text, (10, 10))
@@ -505,29 +481,32 @@ def main(window: pygame.Surface):
                 run = False
 
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE or event.key == pygame.K_UP:
-                    if not paused and not game_over:  # Allow jumping only when not paused or game over
-                        player.jump()
-                elif event.key == pygame.K_ESCAPE:
-                    if not game_over:  # Toggle pause only when not already game over
-                        paused = not paused
+                if (event.key == pygame.K_SPACE or event.key == pygame.K_UP) and player.jump_count < 2:
+                    player.jump()
+            
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                # Check if the click is within the boundaries of the retry button
+                if (WIDTH - 200) // 2 <= event.pos[0] <= (WIDTH - 200) // 2 + 200 and \
+                (HEIGHT - 100) // 2 <= event.pos[1] <= (HEIGHT - 100) // 2 + 100:
+                    player.rect.x = 0
+                    player.rect.y = HEIGHT - block_size
+                    player.lives = 3
+                    print("Button is clicked")
 
-        if paused:
-            # Draw pause menu
-            pause(window, font)
-            continue  # Skip the rest of the loop iteration while paused
-
-        player.loop(FPS, GAMEOVER)
+        player.loop(FPS)
         first_enemy.loop(FPS, objects)
         fire.loop()
-        handle_move(player, first_enemy, objects, GAMEOVER)
+        handle_move(player, first_enemy, objects)
         draw(window, background, bg_image, player, first_enemy, fire, objects, offset_x)
 
         if player.rect.y > HEIGHT:
             player.lives = 0
 
         if player.lives <= 0:
-            game_over = True  # Set game over state to True
+            gameOver_button.draw(window)
+            player.rect.x = WIDTH // 2
+            player.rect.y = HEIGHT
+
 
         if ((player.rect.right - offset_x >= WIDTH - scroll_area_width) and player.x_vel > 0) or (
                 (player.rect.left - offset_x <= scroll_area_width) and player.x_vel < 0):
@@ -537,6 +516,6 @@ def main(window: pygame.Surface):
     quit()
 
 
-
 if __name__ == "__main__":
     main(window)
+
