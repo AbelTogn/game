@@ -491,7 +491,7 @@ def main(window: pygame.Surface):
                     player.rect.x = 0
                     player.rect.y = HEIGHT - block_size
                     player.lives = 3
-                    print("Button is clicked")
+                    print("Button is clicked") 
 
         player.loop(FPS)
         first_enemy.loop(FPS, objects)
