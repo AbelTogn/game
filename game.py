@@ -1,31 +1,35 @@
-import os
 
+
+# Importe les librairies nécessaires
 from os import listdir
 from os.path import isfile, join
 from typing import Optional
 
 import pygame
 
-# Initialize pygame
+# Initialise pygame
 pygame.init()
 
-# Set up the window
+# Met en place la fenètre
 pygame.display.set_caption("Platformer")
 
-# Set window dimensions and frames per second
+# Met en place les diemnsions de la fenètre et le nombre de frames par seconde
 WIDTH, HEIGHT = 1000, 800
 FPS = 60
+# Met en place la vitesse du personnage et la taille d'un bloc
 PLAYER_VEL = 5
 BLOCK_SIZE = 96
+# Crée la police d'écriture et les couleurs
 font = pygame.font.Font(None, 36)
-colors = [(255, 0, 0),(0, 0, 0)]
+colors = [(255, 0, 0), (0, 0, 0)]
+
 gameOver = False
 
-# Create the game window
+# Crée la fenètre de jeu
 window = pygame.display.set_mode((WIDTH, HEIGHT))
 
 
-# Function to load sprite sheets
+# Fonction pour charger les sprites
 def load_sprite_sheets(directory_1, directory_2, width, height, direction=False) -> dict:
     path = join("assets", directory_1, directory_2)
     images = [f for f in listdir(path) if isfile(join(path, f))]
@@ -54,7 +58,7 @@ def load_sprite_sheets(directory_1, directory_2, width, height, direction=False)
     return all_sprites
 
 
-# Function to get block image
+# Fonction pour trouver l'images des blocks
 def get_block(size: float) -> pygame.Surface:
     path = join("assets", "Terrain", "Terrain.png")
     image = pygame.image.load(path).convert_alpha()
@@ -64,7 +68,7 @@ def get_block(size: float) -> pygame.Surface:
     return pygame.transform.scale2x(surface)
 
 
-# Define Player class
+# Définit la classe Player (joueur)
 class Player(pygame.sprite.Sprite):
     COLOR = (255, 0, 0)
     GRAVITY = 1
@@ -73,7 +77,9 @@ class Player(pygame.sprite.Sprite):
 
     def __init__(self, x: int, y: int, width: int, height: int) -> None:
         super().__init__()
-        # Initialize player attributes
+        # Initialise les attributs du joueur
+        self.sprite = None
+        self.count = None
         self.rect = pygame.Rect(x, y, width, height)
         self.x_vel, self.y_vel = 0, 0
         self.mask = None
@@ -87,21 +93,21 @@ class Player(pygame.sprite.Sprite):
         self.invincible = False
         self.invincible_count = 0
 
-    # Method to make the player jump
+    # Méthode pour faire sauter le joueur
     def jump(self):
-        
+
         self.y_vel = -self.GRAVITY * 8
         self.animation_count = 0
         self.jump_count += 1
         if self.jump_count == 1:
             self.fall_count = 0
 
-    # Method to move the player
+    # Méthode pour déplacer le joueur
     def move(self, dx: int, dy: int) -> None:
         self.rect.x += dx
         self.rect.y += dy
 
-    # Method to handle player being hit by enemies
+    # Méthode pour gérer la prise de dégats du joueur
     def make_hit(self, enemy_object: object) -> None:
         enemy_object_class = type(enemy_object).__name__
         if enemy_object_class == "Fire" or enemy_object_class == "Enemy":
@@ -110,21 +116,21 @@ class Player(pygame.sprite.Sprite):
                 self.invincible_count = FPS * 3
                 self.lives -= 1
 
-    # Method to move player left
+    # Méthode pour faire aller le joueur à gauche
     def move_left(self, vel: int) -> None:
         self.x_vel = -vel
         if self.direction != "left":
             self.direction = "left"
             self.animation_count = 0
 
-    # Method to move player right
+    # Méthode pour faire aller le joueur à droite
     def move_right(self, vel: int) -> None:
         self.x_vel = vel
         if self.direction != "right":
             self.direction = "right"
             self.animation_count = 0
 
-    # Method to update player state and animation
+    # Méthode pour gérer la mise à jour du sprite et son état
     def loop(self, FPS: int) -> None:
         if self.invincible:
             self.invincible_count -= 1
@@ -149,18 +155,18 @@ class Player(pygame.sprite.Sprite):
 
         self.update_sprite()
 
-    # Method to handle player landing
+    # Méthode pour gérer l'atterissage du joueur
     def landed(self) -> None:
         self.fall_count = 0
         self.y_vel = 0
         self.jump_count = 0
 
-    # Method to handle player hitting ceiling
+    # Méthode pour gérer quand le personnage touche le bas d'un bloc avec la tête
     def hit_head(self) -> None:
         self.count = 0
         self.y_vel *= -1
 
-    # Method to update player sprite based on state
+    # Méthode pour changer le sprite du joueur en fonction de son état
     def update_sprite(self) -> None:
         sprite_sheet = "idle"
         if self.hit:
@@ -182,12 +188,12 @@ class Player(pygame.sprite.Sprite):
         self.animation_count += 1
         self.update()
 
-    # Method to update player position and mask
+    # Méthode pour mettre à jour le sprite et le masque du joueur
     def update(self) -> None:
         self.rect = self.sprite.get_rect(topleft=(self.rect.x, self.rect.y))
         self.mask = pygame.mask.from_surface(self.sprite)
 
-    # Method to draw player on screen
+    # Méthode pour afficher le joueut à l'écran
     def draw(self, win: pygame.Surface, offset_x: int) -> None:
         if self.invincible and (self.invincible_count // 10) % 2 == 0:
             win.blit(self.sprite, (self.rect.x - offset_x, self.rect.y))
@@ -313,6 +319,7 @@ class Fire(GameObject):
         if self.animation_count // self.ANIMATION_DELAY > len(sprites):
             self.animation_count = 0
 
+
 class Button:
     def __init__(self, text: str, font: pygame.font.Font, x: int, y: int, width: int, height: int) -> None:
         self.text = text
@@ -328,7 +335,6 @@ class Button:
         text_surface = self.font.render(self.text, True, self.colors[1])
         text_rect = text_surface.get_rect(center=(self.x + self.width // 2, self.y + self.height // 2))
         window.blit(text_surface, text_rect)
-        
 
 
 def get_background(name: str) -> tuple:
@@ -441,12 +447,13 @@ def handle_move(player: object, first_enemy: object, objects: list) -> None:
     first_enemy.update_sprite()
     first_enemy.update_sprite()
 
+
 def main(window: pygame.Surface):
     clock = pygame.time.Clock()
     background, bg_image = get_background("Blue.png")
 
     block_size = 96
-    
+
     player = Player(0, HEIGHT - block_size, 50, 50)
     first_enemy = Enemy(block_size * 6, HEIGHT - block_size * 4, 50, 50)
     gameOver_button = Button("Retry ?", font, (WIDTH - 200) // 2, (HEIGHT - 100) // 2, 200, 100)
@@ -483,15 +490,18 @@ def main(window: pygame.Surface):
             if event.type == pygame.KEYDOWN:
                 if (event.key == pygame.K_SPACE or event.key == pygame.K_UP) and player.jump_count < 2:
                     player.jump()
-            
+
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 # Check if the click is within the boundaries of the retry button
                 if (WIDTH - 200) // 2 <= event.pos[0] <= (WIDTH - 200) // 2 + 200 and \
-                (HEIGHT - 100) // 2 <= event.pos[1] <= (HEIGHT - 100) // 2 + 100:
-                    player.rect.x = 0
-                    player.rect.y = HEIGHT - block_size
-                    player.lives = 3
-                    print("Button is clicked") 
+                        (HEIGHT - 100) // 2 <= event.pos[1] <= (HEIGHT - 100) // 2 + 100:
+                    del player
+                    del first_enemy
+                    player = Player(0, HEIGHT - block_size, 50, 50)
+                    first_enemy = Enemy(block_size * 6, HEIGHT - block_size * 4, 50, 50)
+                    objects = [*floor, *pyramid, *left_tower, fire, first_enemy]
+                    first_enemy.x_vel = -2
+                    print("Button is clicked")
 
         player.loop(FPS)
         first_enemy.loop(FPS, objects)
@@ -507,7 +517,6 @@ def main(window: pygame.Surface):
             player.rect.x = WIDTH // 2
             player.rect.y = HEIGHT
 
-
         if ((player.rect.right - offset_x >= WIDTH - scroll_area_width) and player.x_vel > 0) or (
                 (player.rect.left - offset_x <= scroll_area_width) and player.x_vel < 0):
             offset_x += player.x_vel
@@ -518,4 +527,3 @@ def main(window: pygame.Surface):
 
 if __name__ == "__main__":
     main(window)
-
