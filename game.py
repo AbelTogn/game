@@ -1,5 +1,3 @@
-
-
 # Importe les librairies nécessaires
 from os import listdir
 from os.path import isfile, join
@@ -13,9 +11,10 @@ pygame.init()
 # Met en place la fenètre
 pygame.display.set_caption("Platformer")
 
-# Met en place les diemnsions de la fenètre et le nombre de frames par seconde
+# Met en place les diemnsions de la fenètre, le nombre de frames par seconde et les crédits
 WIDTH, HEIGHT = 1000, 800
 FPS = 60
+CREDITS = 3
 # Met en place la vitesse du personnage et la taille d'un bloc
 PLAYER_VEL = 5
 BLOCK_SIZE = 96
@@ -131,7 +130,7 @@ class Player(pygame.sprite.Sprite):
             self.animation_count = 0
 
     # Méthode pour gérer la mise à jour du sprite et son état
-    def loop(self, FPS: int) -> None:
+    def loop(self, fps: int) -> None:
         if self.invincible:
             self.invincible_count -= 1
             if self.invincible_count <= 0:
@@ -144,12 +143,12 @@ class Player(pygame.sprite.Sprite):
                 self.invincible = False
 
         self.fall_count += 1
-        self.y_vel += min(1, (self.fall_count / FPS) * self.GRAVITY)
+        self.y_vel += min(1, (self.fall_count / fps) * self.GRAVITY)
         self.move(self.x_vel, self.y_vel)
 
         if self.hit:
             self.hit_count += 1
-        if self.hit_count > FPS * 2:
+        if self.hit_count > fps * 2:
             self.hit = False
             self.hit_count = 0
 
@@ -201,14 +200,16 @@ class Player(pygame.sprite.Sprite):
             win.blit(self.sprite, (self.rect.x - offset_x, self.rect.y))
 
 
+# Crée la classe Enemy (ennemi)
 class Enemy(pygame.sprite.Sprite):
     COLOR = (255, 0, 0)
     GRAVITY = 0.5  # Adjust gravity as needed
     SPRITES = load_sprite_sheets("MainCharacters", "NinjaFrog", 32, 32, True)
     ANIMATION_DELAY = 3
 
-    def __init__(self, x: int, y: int, width: int, height: int, name=None) -> None:
+    def __init__(self, x: int, y: int, width: int, height: int) -> None:
         super().__init__()
+        self.sprite = None
         self.rect = pygame.Rect(x, y, width, height)
         self.x_vel, self.y_vel = 0, 0
         self.mask = None
@@ -222,17 +223,16 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.x += dx
         self.rect.y += dy
 
-    def loop(self, FPS: int, objects: list) -> None:
+    def loop(self, objects: list) -> None:
         on_ground = False
         for obj in objects:
             if isinstance(obj, Block) and obj.rect.colliderect(self.rect.move(0, self.y_vel + 1)):
                 on_ground = True
-                self.rect.bottom = obj.rect.top  # Adjust position to be just above the ground
-                self.y_vel = 0  # Stop falling
+                self.rect.bottom = obj.rect.top
+                self.y_vel = 0
                 break
 
         if not on_ground:
-            # Apply gravity to make the enemy fall when not on the ground
             self.y_vel += self.GRAVITY
 
         self.move(0, self.y_vel)
@@ -241,14 +241,14 @@ class Enemy(pygame.sprite.Sprite):
     def handle_collision(self, objects: list) -> None:
         for obj in objects:
             if pygame.sprite.collide_rect(self, obj):
-                if self.rect.colliderect(obj.rect):  # Check for collision with object
-                    if self.y_vel > 0:  # If falling downwards
-                        self.rect.bottom = obj.rect.top  # Adjust position to be just above the ground
-                        self.fall_count = 0  # Reset fall count
-                        self.y_vel = 0  # Stop falling
-                    elif self.y_vel < 0:  # If moving upwards
-                        self.rect.top = obj.rect.bottom  # Adjust position below the ceiling
-                        self.y_vel = 0  # Stop moving upwards
+                if self.rect.colliderect(obj.rect):
+                    if self.y_vel > 0:
+                        self.rect.bottom = obj.rect.top
+                        self.fall_count = 0
+                        self.y_vel = 0
+                    elif self.y_vel < 0:
+                        self.rect.top = obj.rect.bottom
+                        self.y_vel = 0
 
     def update_sprite(self) -> None:
         sprite_sheet_name = "run_" + self.direction
@@ -320,21 +320,22 @@ class Fire(GameObject):
             self.animation_count = 0
 
 
+# noinspection PyPep8Naming
 class Button:
-    def __init__(self, text: str, font: pygame.font.Font, x: int, y: int, width: int, height: int) -> None:
+    def __init__(self, text: str, FONT: pygame.font.Font, x: int, y: int, width: int, height: int) -> None:
         self.text = text
-        self.font = font
+        self.font = FONT
         self.x = x
         self.y = y
         self.width = width
         self.height = height
         self.colors = [(255, 0, 0), (0, 0, 0)]  # Red background, black text
 
-    def draw(self, window: pygame.Surface) -> None:
-        pygame.draw.rect(window, self.colors[0], (self.x, self.y, self.width, self.height))
+    def draw(self, WINDOW: pygame.Surface) -> None:
+        pygame.draw.rect(WINDOW, self.colors[0], (self.x, self.y, self.width, self.height))
         text_surface = self.font.render(self.text, True, self.colors[1])
         text_rect = text_surface.get_rect(center=(self.x + self.width // 2, self.y + self.height // 2))
-        window.blit(text_surface, text_rect)
+        WINDOW.blit(text_surface, text_rect)
 
 
 def get_background(name: str) -> tuple:
@@ -350,23 +351,26 @@ def get_background(name: str) -> tuple:
     return tiles, image
 
 
-def draw_background(window: pygame.Surface, background: list, bg_image: pygame.Surface) -> None:
+# noinspection PyPep8Naming
+def draw_background(WINDOW: pygame.Surface, background: list, bg_image: pygame.Surface) -> None:
     for tile in background:
-        window.blit(bg_image, tile)
+        WINDOW.blit(bg_image, tile)
 
 
-def draw_objects(window: pygame.Surface, objects: list, offset_x: int) -> None:
+# noinspection PyPep8Naming
+def draw_objects(WINDOW: pygame.Surface, objects: list, offset_x: int) -> None:
     for obj in objects:
-        obj.draw(window, offset_x)
+        obj.draw(WINDOW, offset_x)
 
 
-def draw(window: pygame.Surface, background: list, bg_image: pygame.Surface,
+# noinspection PyPep8Naming
+def draw(WINDOW: pygame.Surface, background: list, bg_image: pygame.Surface,
          player: object, enemy: object, fire: object, objects: list, offset_x: int) -> None:
-    draw_background(window, background, bg_image)
-    draw_objects(window, objects, offset_x)
-    fire.draw(window, offset_x)
-    player.draw(window, offset_x)
-    enemy.draw(window, offset_x)
+    draw_background(WINDOW, background, bg_image)
+    draw_objects(WINDOW, objects, offset_x)
+    fire.draw(WINDOW, offset_x)
+    player.draw(WINDOW, offset_x)
+    enemy.draw(WINDOW, offset_x)
 
 
 def handle_vertical_collision(character: object, objects: list, dy: int) -> list:
@@ -448,7 +452,8 @@ def handle_move(player: object, first_enemy: object, objects: list) -> None:
     first_enemy.update_sprite()
 
 
-def main(window: pygame.Surface):
+# noinspection PyPep8Naming
+def main(WINDOW: pygame.Surface, credits):
     clock = pygame.time.Clock()
     background, bg_image = get_background("Blue.png")
 
@@ -457,6 +462,7 @@ def main(window: pygame.Surface):
     player = Player(0, HEIGHT - block_size, 50, 50)
     first_enemy = Enemy(block_size * 6, HEIGHT - block_size * 4, 50, 50)
     gameOver_button = Button("Retry ?", font, (WIDTH - 200) // 2, (HEIGHT - 100) // 2, 200, 100)
+    insertCoins_button = Button("Insert coins", font, (WIDTH - 200) // 2, (HEIGHT - 100) // 2, 200, 100)
     fire = Fire(block_size * 2, HEIGHT - block_size - 64, 16, 32)
     fire.on()
     floor = [Block(i * block_size, HEIGHT - block_size, block_size)
@@ -476,11 +482,17 @@ def main(window: pygame.Surface):
     first_enemy.x_vel = -2  # Adjust as needed
 
     run = True
+    scene_name = "First Level"
     while run:
+
         clock.tick(FPS)
 
         lives_text = font.render(f"Lives: {player.lives}", True, (0, 0, 0))
-        window.blit(lives_text, (10, 10))
+        WINDOW.blit(lives_text, (10, 10))
+
+        credits_text = font.render(f"Credits: {credits}", True, (0, 0, 0))
+        WINDOW.blit(credits_text, (10, 50))
+
         pygame.display.update()
 
         for event in pygame.event.get():
@@ -492,38 +504,50 @@ def main(window: pygame.Surface):
                     player.jump()
 
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                # Check if the click is within the boundaries of the retry button
                 if (WIDTH - 200) // 2 <= event.pos[0] <= (WIDTH - 200) // 2 + 200 and \
                         (HEIGHT - 100) // 2 <= event.pos[1] <= (HEIGHT - 100) // 2 + 100:
-                    del player
-                    del first_enemy
-                    player = Player(0, HEIGHT - block_size, 50, 50)
-                    first_enemy = Enemy(block_size * 6, HEIGHT - block_size * 4, 50, 50)
-                    objects = [*floor, *pyramid, *left_tower, fire, first_enemy]
-                    first_enemy.x_vel = -2
-                    print("Button is clicked")
+                    if scene_name == "First Level":
+                        del player
+                        del first_enemy
+                        player = Player(0, HEIGHT - block_size, 50, 50)
+                        first_enemy = Enemy(block_size * 6, HEIGHT - block_size * 4, 50, 50)
+                        objects = [*floor, *pyramid, *left_tower, fire, first_enemy]
+                        first_enemy.x_vel = -2
+                        credits -= 1
+                        if credits == 0 and player.lives == 0:
+                            scene_name = "Game Over"
+                        else:
+                            scene_name = "First Level"
+                    elif scene_name == "Game Over":
+                        pass
 
-        player.loop(FPS)
-        first_enemy.loop(FPS, objects)
-        fire.loop()
-        handle_move(player, first_enemy, objects)
-        draw(window, background, bg_image, player, first_enemy, fire, objects, offset_x)
+        if scene_name == "First Level":
+            player.loop(FPS)
+            first_enemy.loop(objects)
+            fire.loop()
+            handle_move(player, first_enemy, objects)
+            draw(WINDOW, background, bg_image, player, first_enemy, fire, objects, offset_x)
 
-        if player.rect.y > HEIGHT:
-            player.lives = 0
+            if player.rect.y > HEIGHT:
+                player.lives = 0
 
-        if player.lives <= 0:
-            gameOver_button.draw(window)
-            player.rect.x = WIDTH // 2
-            player.rect.y = HEIGHT
+            if scene_name == "Game Over":
+                insertCoins_button.draw(WINDOW)
+            elif player.lives == 0 and scene_name != "Game Over":
+                gameOver_button.draw(WINDOW)
+                player.rect.x = WIDTH // 2
+                player.rect.y = HEIGHT
 
-        if ((player.rect.right - offset_x >= WIDTH - scroll_area_width) and player.x_vel > 0) or (
-                (player.rect.left - offset_x <= scroll_area_width) and player.x_vel < 0):
-            offset_x += player.x_vel
+            if ((player.rect.right - offset_x >= WIDTH - scroll_area_width) and player.x_vel > 0) or (
+                    (player.rect.left - offset_x <= scroll_area_width) and player.x_vel < 0):
+                offset_x += player.x_vel
+
+        elif scene_name == "Game Over":
+            insertCoins_button.draw(WINDOW)
 
     pygame.quit()
     quit()
 
 
 if __name__ == "__main__":
-    main(window)
+    main(window, CREDITS)
