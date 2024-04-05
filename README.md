@@ -1,4 +1,4 @@
-# Platformer Game
+# Anymario
 
 Jeu de platforme jouable avec des mouvements
 
@@ -13,7 +13,7 @@ Le jeu de plateforme présente un personnage joueur qui peut se déplacer horizo
 - Des pièges tels que le feu qui peuvent nuire au joueur.
 - Détection et gestion de base des collisions.
 - Graphiques d'arrière-plan et animations simples.
-- 
+
 ## Installation
 
 1. Clonez le référentiel:
@@ -33,6 +33,6 @@ main.py
 
 ## Credits
 
-- Ce jeu a été créé par Abel Tognoni, Marion Gueble et Romain Zanker dans le cadre d'un projet pour l'Ecole.
+- Ce jeu a été créé par Abel Tognoni, Marion Gueble et Romain Zanker.
 - Les sprites et les éléments graphiques utilisés dans le jeu proviennent de Marion Gueble.
-
+- Les musiques proviennent de Romain Zanker
