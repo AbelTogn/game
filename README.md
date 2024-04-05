@@ -1,40 +1,38 @@
 # Platformer Game
 
-This is a simple platformer game built using Python and Pygame library.
+Jeu de platforme jouable avec des mouvements
 
 ## Overview
 
-The platformer game features a player character that can move horizontally and jump to navigate through the game world. The player must avoid obstacles, traps, and enemies to reach the end of each level.
-
+Le jeu de plateforme présente un personnage joueur qui peut se déplacer horizontalement et sauter pour naviguer dans le monde du jeu. Le joueur doit éviter les obstacles, les pièges et les ennemis pour atteindre la fin de chaque niveau.
 ## Features
 
-- Player character with basic movement and jumping abilities.
-- Enemies with simple AI movement.
-- Blocks and obstacles for the player to navigate.
-- Traps such as fire that can harm the player.
-- Basic collision detection and handling.
-- Background graphics and simple animations.
-
+- Personnage joueur avec des capacités de mouvement et de saut de base.
+- Ennemis avec un mouvement simple de l'IA.
+- Blocs et obstacles permettant au joueur de naviguer.
+- Des pièges tels que le feu qui peuvent nuire au joueur.
+- Détection et gestion de base des collisions.
+- Graphiques d'arrière-plan et animations simples.
+- 
 ## Installation
 
-1. Clone the repository:
-git clone https://github.com/AbelTogn/game
+1. Clonez le référentiel:
+clone git https://github.com/AbelTogn/game
 
-2. Install the required dependencies:
-pip install pygame
+2. Installez les dépendances requises:
+pip installer pygame
 
-3. Run the game:
+3. Lancez le jeu:
 main.py
-
 
 ## Controls
 
-- **Left Arrow Key**: Move the player character left.
-- **Right Arrow Key**: Move the player character right.
-- **Spacebar or Up Arrow Key**: Make the player character jump.
+- **Flèche gauche**: Déplacez le personnage du joueur vers la gauche.
+- **Flèche droite**: Déplacez le personnage du joueur vers la droite.
+- **Barre d'espace ou flèche vers le haut**: faites sauter le personnage du joueur.
 
 ## Credits
 
-- This game was created by Abel Tognoni, Marion Gueble and Romain Zanker as a project for School.
-- Sprites and graphics assets used in the game are sourced from Marion Gueble.
+- Ce jeu a été créé par Abel Tognoni, Marion Gueble et Romain Zanker dans le cadre d'un projet pour l'Ecole.
+- Les sprites et les éléments graphiques utilisés dans le jeu proviennent de Marion Gueble.
 
