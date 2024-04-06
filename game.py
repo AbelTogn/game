@@ -1,54 +1,50 @@
-# Importe les librairies nécessaires
+# Importation des bibliothèques nécessaires
 from os import listdir
 from os.path import isfile, join
 from typing import Optional
-from Class import *
+from Class import *  # Importation des classes personnalisées
 
 import pygame
 import cv2
 
-# Initialise pygame
+# Initialisation de Pygame
 pygame.init()
 
-# Met en place la fenètre
+# Configuration de la fenêtre de jeu
 pygame.display.set_caption("Platformer")
-
-# Met en place les diemnsions de la fenètre, le nombre de frames par seconde et les crédits
 WIDTH, HEIGHT = 1000, 800
 FPS = 60
 CREDITS = 3
-# Met en place la vitesse du personnage et la taille d'un bloc
 PLAYER_VEL = 5
 BLOCK_SIZE = 96
-# Crée la police d'écriture et les couleurs
 font = pygame.font.Font(None, 36)
 colors = [(255, 0, 0), (0, 0, 0)]
 
 gameOver = False
-
-# Crée la fenètre de jeu
 window = pygame.display.set_mode((WIDTH, HEIGHT))
 
 
-# Fonction pour charger les sprites
+# Fonction pour charger les feuilles de sprites
 def load_sprite_sheets(directory_1, directory_2, width, height, direction=False) -> dict:
+    # Recherche des fichiers d'images dans le répertoire spécifié
     path = join("assets", directory_1, directory_2)
     images = [f for f in listdir(path) if isfile(join(path, f))]
 
     all_sprites = {}
 
     for image in images:
+        # Chargement de la feuille de sprite
         sprite_sheet = pygame.image.load(join(path, image)).convert_alpha()
         sprites = []
 
-        # Split sprite sheet into individual sprites
+        # Découpage de la feuille de sprite en sprites individuels
         for i in range(sprite_sheet.get_width() // width):
             surface = pygame.Surface((width, height), pygame.SRCALPHA, 32)
             rect = pygame.Rect(i * width, 0, width, height)
             surface.blit(sprite_sheet, (0, 0), rect)
             sprites.append(pygame.transform.scale2x(surface))
 
-        # Store sprites in dictionary, handling direction if specified
+        # Stockage des sprites dans un dictionnaire, gestion de la direction si spécifié
         if direction:
             all_sprites[image.replace(".png", "") + "_right"] = sprites
             all_sprites[image.replace(".png", "") + "_left"] = [pygame.transform.flip(sprite, True, False) for sprite
@@ -59,7 +55,7 @@ def load_sprite_sheets(directory_1, directory_2, width, height, direction=False)
     return all_sprites
 
 
-# Fonction pour trouver l'images des blocks
+# Fonction pour obtenir l'image des blocs
 def get_block(size: float) -> pygame.Surface:
     path = join("assets", "Terrain", "Terrain.png")
     image = pygame.image.load(path).convert_alpha()
@@ -69,6 +65,7 @@ def get_block(size: float) -> pygame.Surface:
     return pygame.transform.scale2x(surface)
 
 
+# Fonction pour obtenir l'arrière-plan
 def get_background(name: str) -> tuple:
     image = pygame.image.load(join("assets", "Background", name))
     _, _, width, height = image.get_rect()
@@ -82,19 +79,19 @@ def get_background(name: str) -> tuple:
     return tiles, image
 
 
-# noinspection PyPep8Naming
+# Fonction pour dessiner l'arrière-plan
 def draw_background(WINDOW: pygame.Surface, background: list, bg_image: pygame.Surface) -> None:
     for tile in background:
         WINDOW.blit(bg_image, tile)
 
 
-# noinspection PyPep8Naming
+# Fonction pour dessiner les objets
 def draw_objects(WINDOW: pygame.Surface, objects: list, offset_x: int) -> None:
     for obj in objects:
         obj.draw(WINDOW, offset_x)
 
 
-# noinspection PyPep8Naming
+# Fonction pour dessiner
 def draw(WINDOW: pygame.Surface, background: list, bg_image: pygame.Surface,
          player: object, enemy: object, fire: object, objects: list, offset_x: int) -> None:
     draw_background(WINDOW, background, bg_image)
@@ -104,6 +101,7 @@ def draw(WINDOW: pygame.Surface, background: list, bg_image: pygame.Surface,
     enemy.draw(WINDOW, offset_x)
 
 
+# Gestion des collisions verticales
 def handle_vertical_collision(character: object, objects: list, dy: int) -> list:
     collided_objects = []
     for obj in objects:
@@ -112,17 +110,18 @@ def handle_vertical_collision(character: object, objects: list, dy: int) -> list
                 character.rect.bottom = obj.rect.top
                 character.landed()
             elif dy < 0:
-                character.rect.top = obj.rect.bottom + 1  # Fix to avoid continuous collision
-                if isinstance(character, Player):  # Check if character is Player
+                character.rect.top = obj.rect.bottom + 1
+                if isinstance(character, Player):
                     character.hit_head()
-                elif isinstance(character, Enemy):  # Check if character is Enemy
-                    character.rect.bottom = obj.rect.bottom  # Adjust position to be at same level as obstacle
-                    character.y_vel = 0  # Stop upward movement for enemy
+                elif isinstance(character, Enemy):
+                    character.rect.bottom = obj.rect.bottom
+                    character.y_vel = 0
             collided_objects.append(obj)
 
     return collided_objects
 
 
+# Gestion des collisions
 def collide(character: object, objects: list, dx: int) -> Optional[object]:
     character.move(dx, 0)
     character.update()
@@ -137,6 +136,7 @@ def collide(character: object, objects: list, dx: int) -> Optional[object]:
     return collided_object
 
 
+# Gestion du mouvement
 def handle_move(player: object, first_enemy: object, objects: list) -> None:
     keys = pygame.key.get_pressed()
 
@@ -153,12 +153,11 @@ def handle_move(player: object, first_enemy: object, objects: list) -> None:
     to_check = [collide_left, collide_right, *vertical_collide]
 
     for obj in to_check:
-        if isinstance(obj, Fire):  # Check if obj is an instance of the Fire class
-            player.make_hit(obj)  # Handle collision with fire
-        elif obj == first_enemy:  # Check if obj is the first enemy
-            player.make_hit(first_enemy)  # Handle collision with first enemy
+        if isinstance(obj, Fire):
+            player.make_hit(obj)
+        elif obj == first_enemy:
+            player.make_hit(first_enemy)
 
-    # Adjust enemy movement
     enemy_on_ground = False
     for obj in objects:
         if isinstance(obj, Block) and obj.rect.colliderect(first_enemy.rect.move(0, 1)):
@@ -166,24 +165,17 @@ def handle_move(player: object, first_enemy: object, objects: list) -> None:
             break
 
     if enemy_on_ground:
-        # If enemy is on the ground, reset its vertical velocity
         first_enemy.y_vel = 0
     else:
-        # Apply gravity to make the enemy fall when not on the ground
         first_enemy.y_vel += min(1, (first_enemy.fall_count / FPS) * first_enemy.GRAVITY)
 
-    # Update enemy's horizontal movement
     first_enemy.move(first_enemy.x_vel, 0)
-
-    # Move enemy vertically
     first_enemy.move(0, first_enemy.y_vel)
-
-    # Update enemy's sprite
     first_enemy.update_sprite()
     first_enemy.update_sprite()
 
 
-# noinspection PyPep8Naming
+# Fonction principale
 def main(WINDOW: pygame.Surface, credits):
     clock = pygame.time.Clock()
     background, bg_image = get_background("Blue.png")
@@ -209,13 +201,13 @@ def main(WINDOW: pygame.Surface, credits):
     offset_x = 0
     scroll_area_width = 200
 
-    # Set enemy's initial velocity to move left
-    first_enemy.x_vel = -2  # Adjust as needed
+    first_enemy.x_vel = -2
 
     run = True
     scene_name = "First Level"
+    global play
+    play = True
     while run:
-
         clock.tick(FPS)
 
         lives_text = font.render(f"Lives: {player.lives}", True, (0, 0, 0))
@@ -246,7 +238,9 @@ def main(WINDOW: pygame.Surface, credits):
                         first_enemy.x_vel = -2
                         credits -= 1
                     elif scene_name == "Game Over":
-                        pass
+                        credits += 1
+                        scene_name = "First Level"
+                        player.lives = 3
 
         player.loop(FPS)
         first_enemy.loop(objects)
@@ -259,9 +253,9 @@ def main(WINDOW: pygame.Surface, credits):
             if player.rect.y > HEIGHT:
                 player.lives = 0
 
-            if credits == 0 and player.lives == 0:
+            if credits <= 0 and player.lives == 0 and play:
                 scene_name = "Game Over"
-            else:
+            elif not credits <= 0 and play:
                 scene_name = "First Level"
 
             if scene_name == "Game Over":
@@ -276,7 +270,10 @@ def main(WINDOW: pygame.Surface, credits):
                 offset_x += player.x_vel
 
         elif scene_name == "Game Over":
+            play = False
+            player.lives = 0
             insertCoins_button.draw(WINDOW)
+        print(play)
 
     pygame.quit()
     quit()

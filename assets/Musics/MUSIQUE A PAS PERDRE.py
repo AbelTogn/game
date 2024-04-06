@@ -1,5 +1,7 @@
 from midiutil import MIDIFile
 
+
+# noinspection PyPep8
 def create_midi():
     # Création d'un objet MIDIFile avec 2 pistes
     midi = MIDIFile(2)
