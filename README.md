@@ -22,6 +22,7 @@ Le jeu de plateforme présente un personnage joueur qui peut se déplacer horizo
 - Installez les dépendances requises :
 
 > pip install pygame
+
 > pip install cv2
 
 - Lancez le jeu :

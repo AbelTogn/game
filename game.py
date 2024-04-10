@@ -183,7 +183,7 @@ def main(WINDOW: pygame.Surface, credits):
     block_size = 96
 
     player = Player(0, HEIGHT - block_size, 50, 50)
-    first_enemy = Enemy(block_size * 6, HEIGHT - block_size * 4, 50, 50)
+    first_enemy = Enemy(block_size * 5, HEIGHT - block_size * 4, 50, 50)
     gameOver_button = Button("Retry ?", font, (WIDTH - 200) // 2, (HEIGHT - 100) // 2, 200, 100)
     insertCoins_button = Button("Insert coins", font, (WIDTH - 200) // 2, (HEIGHT - 100) // 2, 200, 100)
     fire = Fire(block_size * 2, HEIGHT - block_size - 64, 16, 32)
@@ -277,7 +277,6 @@ def main(WINDOW: pygame.Surface, credits):
 
     pygame.quit()
     quit()
-
 
 if __name__ == "__main__":
     main(window, CREDITS)
